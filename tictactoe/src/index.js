@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
 import { ApolloClient, InMemoryCache, gql, useQuery } from '@apollo/client';
@@ -69,156 +69,150 @@ const History = ({ recentGame }) => {
     ));
 }
 
-function Square(props) {
+const Square = ({ id, value, onClick }) => {
   return (
     <button
       className="square"
-      onClick={props.onClick}
+      onClick={() => onClick(id)}
     >
-      {props.value}
+      {value}
     </button>
   );
 }
 
-class Board extends React.Component {
-
-  renderSquare(i) {
-    return (
-      <Square
-        value={this.props.squares[i]}
-        onClick={() => this.props.onClick(i)}
-      />
-    );
-  }
-
-  render() {
-    return (
-      <div>
-        <div className="board-row">
-          {this.renderSquare(0)}
-          {this.renderSquare(1)}
-          {this.renderSquare(2)}
-        </div>
-        <div className="board-row">
-          {this.renderSquare(3)}
-          {this.renderSquare(4)}
-          {this.renderSquare(5)}
-        </div>
-        <div className="board-row">
-          {this.renderSquare(6)}
-          {this.renderSquare(7)}
-          {this.renderSquare(8)}
-        </div>
-      </div>
-    );
-  }
+Square.propTypes = {
+  value: PropTypes.string,
+  onClick: PropTypes.any,
+  id: PropTypes.number
 }
 
-class Game extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      history: [{
-        squares: Array(9).fill(null),
-      }],
-      stepNumber: 0,
-      xIsNext: true,
-    };
+const Board = ({ squares, onClick }) => {
+  const rows = [];
+
+  for (let i = 0; i < 3; i++) {
+    const row = [];
+    for (let j = 0; j < 3; j++) {
+      const squareNumber = i * 3 + j;
+      row.push(
+        <Square
+          onClick={onClick}
+          value={squares[squareNumber]}
+          key={j}
+          id={squareNumber}
+        />
+      )
+    }
+    rows.push(
+      <div className="board-row" key={i}>
+        {row}
+      </div>
+    )
   }
 
-  handleClick(i) {
-    const history = this.state.history.slice(0, this.state.stepNumber + 1);
-    const current = history[this.state.stepNumber];
-    const squares = current.squares.slice();
-    if (calculateWinner(squares) || squares[i]) {
-      return;
-    }
-    squares[i] = this.state.xIsNext ? 'X' : 'O';
-    this.setState({
-      history: history.concat([{
+  return (
+    <div>
+      {rows}
+    </div>
+  );
+}
+
+Board.propTypes = {
+  squares: PropTypes.arrayOf(PropTypes.string),
+  onClick: PropTypes.any
+}
+
+const Game = () => {
+  const [ history, setHistory ] = useState([{
+    squares: Array(9).fill(null),
+  }]);
+  const [ stepNumber, setStepNumber ] = useState(0);
+  const [ xIsNext, setXIsNext ] = useState(true);
+
+  const handleClick = useCallback(
+    (i) => {
+      const historyC = history.slice(0, stepNumber + 1);
+      const current = historyC[stepNumber];
+      const squares = current.squares.slice();
+      if (calculateWinner(squares) || squares[i]) {
+        return;
+      }
+      squares[i] = xIsNext ? 'X' : 'O';
+      setHistory(historyC.concat([{
         squares: squares,
-      }]),
-      stepNumber: history.length,
-      xIsNext: !this.state.xIsNext,
-    });
-  }
+      }]));
+      setStepNumber(historyC.length);
+      setXIsNext(!xIsNext);
+    },
+    [history, stepNumber, xIsNext],
+  )
 
+  const jumpTo = useCallback(
+    (step) => {
+      setStepNumber(step);
+      setXIsNext((step % 2) === 0)
+    },
+    [stepNumber],
+  )
 
-  jumpTo(step) {
-    this.setState({
-      stepNumber: step,
-      xIsNext: (step % 2) === 0,
-    });
-  }
+  const historyC = history;
+  const current = historyC[stepNumber];
+  const winner = calculateWinner(current.squares);
+  let addedGame;
 
-
-  render() {
-    const history = this.state.history;
-    const current = history[this.state.stepNumber];
-    const winner = calculateWinner(current.squares);
-    let addedGame;
-
-    const moves = history.map((step, move) => {
-      const desc = move ?
-        'Go to move #' + move :
-        'Go to game start';
-      return (
-        <li key={move}>
-          <button onClick={() => this.jumpTo(move)}>{desc}</button>
-        </li>
-      );
-    });
-
-    let status;
-    if (winner) {
-      status = 'Winner: ' + winner;
-      let turnCounter = 1;
-
-      const queryHist = this.state.history
-      .slice(1) // No need to save an empty board.
-      .map((state) => ({
-        turn: turnCounter++,
-        squares: state.squares
-      }));
-
-      const query = {
-        addGameInput: {
-          history: queryHist,
-          wonBy: winner
-        }
-      };
-
-      /*apolloClient.mutate({
-        mutation: ADD_GAME_MUTATION,
-        variables: query
-      })
-      .catch(err => console.log(err))
-      .then(res => addedGame = res.data.addGame)*/
-      mutate(ADD_GAME_MUTATION, query)
-        .catch(err => console.log("Something went wrong while mutating a game: " + err))
-
-    } else {
-      status = 'Next player: ' + (this.state.xIsNext ? 'X' : 'O');
-    }
-
+  const moves = historyC.map((step, move) => {
+    const desc = move ?
+      'Go to move #' + move :
+      'Go to game start';
     return (
-      <div className="game">
-        <div className="game-board">
-          <Board
-            squares={current.squares}
-            onClick={(i) => this.handleClick(i)}
-          />
-        </div>
-        <div className="game-info">
-          <div>{status}</div>
-          <ol>{moves}</ol>
-        </div>
-        <History
-          recentGame={addedGame}
+      <li key={move}>
+        <button onClick={() => jumpTo(move)}>{desc}</button>
+      </li>
+    );
+  });
+
+  let status;
+  if (winner) {
+    status = 'Winner: ' + winner;
+    let turnCounter = 1;
+
+    const queryHist = history
+    .slice(1) // No need to save an empty board.
+    .map((state) => ({
+      turn: turnCounter++,
+      squares: state.squares
+    }));
+
+    const query = {
+      addGameInput: {
+        history: queryHist,
+        wonBy: winner
+      }
+    };
+
+    mutate(ADD_GAME_MUTATION, query)
+      .catch(err => console.log("Something went wrong while mutating a game: " + err))
+
+  } else {
+    status = 'Next player: ' + (xIsNext ? 'X' : 'O');
+  }
+
+  return (
+    <div className="game">
+      <div className="game-board">
+        <Board
+          squares={current.squares}
+          onClick={handleClick}
         />
       </div>
-    );
-  }
+      <div className="game-info">
+        <div>{status}</div>
+        <ol>{moves}</ol>
+      </div>
+      <History
+        recentGame={addedGame}
+      />
+    </div>
+  );
 }
 
 async function mutate(mutation, variables) {
