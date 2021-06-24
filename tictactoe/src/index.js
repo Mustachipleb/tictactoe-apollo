@@ -3,13 +3,14 @@ import ReactDOM from 'react-dom';
 import './index.css';
 import { ApolloClient, InMemoryCache, gql, useQuery } from '@apollo/client';
 import { ApolloProvider } from '@apollo/client';
+import PropTypes from 'prop-types';
 
-const client = new ApolloClient({
+const apolloClient = new ApolloClient({
   uri: 'http://localhost:4000/',
   cache: new InMemoryCache()
 })
 
-const GAMES = gql`
+const GAMES_QUERY = gql`
   query getGames {
     games {
       id
@@ -22,7 +23,7 @@ const GAMES = gql`
   }
 `;
 
-const ADD_GAME = gql`
+const ADD_GAME_MUTATION = gql`
   mutation Mutation($addGameInput: GameInput!) {
     addGame(input: $addGameInput) {
       id
@@ -35,19 +36,18 @@ const ADD_GAME = gql`
   }
 `
 
-function History(props) {
-  const { loading, error, data } = useQuery(GAMES);
+const History = ({ recentGame }) => {
+  const { loading, error, data } = useQuery(GAMES_QUERY);
 
   if (loading) return <p>Loading...</p>;
   if (error) return <p>Error :(</p>;
 
   let games = data.games;
 
-  console.log(JSON.stringify(props))
-  if (props.recentGame) {
-    games = [games, props.addedGame];
+  if (recentGame) {
+    games = [games, recentGame];
   }
-  
+
   return games
     .map(({ id, wonBy, history }) => (
       <div key={id}>
@@ -188,17 +188,19 @@ class Game extends React.Component {
         }
       };
 
-      client.mutate({
-        mutation: ADD_GAME,
+      /*apolloClient.mutate({
+        mutation: ADD_GAME_MUTATION,
         variables: query
       })
       .catch(err => console.log(err))
-      .then(res => addedGame = res.data.addGame)
+      .then(res => addedGame = res.data.addGame)*/
+      mutate(ADD_GAME_MUTATION, query)
+        .catch(err => console.log("Something went wrong while mutating a game: " + err))
+
     } else {
       status = 'Next player: ' + (this.state.xIsNext ? 'X' : 'O');
     }
 
-    console.log(addedGame);
     return (
       <div className="game">
         <div className="game-board">
@@ -219,10 +221,17 @@ class Game extends React.Component {
   }
 }
 
+async function mutate(mutation, variables) {
+  return await apolloClient.mutate({
+    mutation: mutation,
+    variables: variables
+  })
+}
+
 // ========================================
 
 ReactDOM.render(
-  <ApolloProvider client={client}>
+  <ApolloProvider client={apolloClient}>
     <Game />
   </ApolloProvider>,
   document.getElementById('root')
