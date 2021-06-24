@@ -4,6 +4,7 @@ import './index.css';
 import { ApolloClient, InMemoryCache, gql, useQuery } from '@apollo/client';
 import { ApolloProvider } from '@apollo/client';
 import PropTypes from 'prop-types';
+import styled from 'styled-components';
 
 const apolloClient = new ApolloClient({
   uri: 'http://localhost:4000/',
@@ -69,14 +70,32 @@ const History = ({ recentGame }) => {
     ));
 }
 
+const StyledSquare = styled.button`
+  background: #fff;
+  border: 1px solid #999;
+  float: left;
+  font-size: 24px;
+  font-weight: bold;
+  line-height: 34px;
+  height: 34px;
+  margin-right: -1px;
+  margin-top: -1px;
+  padding: 0;
+  text-align: center;
+  width: 34px;
+  &:focus {
+    outline: none;
+    background: #ddd;
+  }
+`;
+
 const Square = ({ id, value, onClick }) => {
   return (
-    <button
-      className="square"
+    <StyledSquare
       onClick={() => onClick(id)}
     >
       {value}
-    </button>
+    </StyledSquare>
   );
 }
 
@@ -85,6 +104,14 @@ Square.propTypes = {
   onClick: PropTypes.any,
   id: PropTypes.number
 }
+
+const BoardRow = styled.div`
+  &:after {
+    clear: both;
+    content: "";
+    display: table;
+  }
+`
 
 const Board = ({ squares, onClick }) => {
   const rows = [];
@@ -103,9 +130,9 @@ const Board = ({ squares, onClick }) => {
       )
     }
     rows.push(
-      <div className="board-row" key={i}>
+      <BoardRow key={i}>
         {row}
-      </div>
+      </BoardRow>
     )
   }
 
@@ -120,6 +147,19 @@ Board.propTypes = {
   squares: PropTypes.arrayOf(PropTypes.string),
   onClick: PropTypes.any
 }
+
+const StyledGame = styled.div`
+  display: flex;
+  flex-direction: row;
+`
+
+const StyledGameInfo = styled.div`
+  margin-left: 20px;
+`
+
+const StyledList = styled.ol`
+  padding-left: 30px;
+`
 
 const Game = () => {
   const [ history, setHistory ] = useState([{
@@ -197,21 +237,21 @@ const Game = () => {
   }
 
   return (
-    <div className="game">
-      <div className="game-board">
+    <StyledGame>
+      <div>
         <Board
           squares={current.squares}
           onClick={handleClick}
         />
       </div>
-      <div className="game-info">
+      <StyledGameInfo>
         <div>{status}</div>
-        <ol>{moves}</ol>
-      </div>
+        <StyledList>{moves}</StyledList>
+      </StyledGameInfo>
       <History
         recentGame={addedGame}
       />
-    </div>
+    </StyledGame>
   );
 }
 
