@@ -74,15 +74,15 @@ const StyledSquare = styled.button`
   background: #fff;
   border: 1px solid #999;
   float: left;
-  font-size: 24px;
+  font-size: 1.75rem;
   font-weight: bold;
-  line-height: 34px;
-  height: 34px;
+  line-height: 2rem;
+  height: 2.25rem;
   margin-right: -1px;
   margin-top: -1px;
   padding: 0;
   text-align: center;
-  width: 34px;
+  width: 2.25rem;
   &:focus {
     outline: none;
     background: #ddd;
@@ -154,11 +154,11 @@ const StyledGame = styled.div`
 `
 
 const StyledGameInfo = styled.div`
-  margin-left: 20px;
+  margin-left: 1.5rem;
 `
 
 const StyledList = styled.ol`
-  padding-left: 30px;
+  padding-left: 2rem;
 `
 
 const Game = () => {
